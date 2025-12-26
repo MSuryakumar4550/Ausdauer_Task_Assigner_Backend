@@ -24,12 +24,10 @@ const server = http.createServer(app);
 // 1. ROBUST CORS & SOCKET CONFIGURATION
 // Adding 'transports' to fix those red socket.io (failed) errors in your screenshot
 const io = new Server(server, {
-  cors: { 
-    origin: "http://localhost:3000", 
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-  },
-  transports: ["websocket", "polling"] 
+  cors: {
+    origin: "https://ausdauer-task-assigner-frontend.vercel.app",
+    methods: ["GET", "POST"]
+  }
 });
 
 // 2. MIDDLEWARE
