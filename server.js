@@ -13,8 +13,9 @@ const server = http.createServer(app);
 
 // 1. ROBUST CORS CONFIGURATION
 const allowedOrigins = [
-  "http://localhost:3000", 
-  "https://ausdauer-task-assigner-frontend.vercel.app"
+  "https://ausdauer-task-assigner-frontend.vercel.app",
+  "http://localhost:3000"
+  
 ];
 
 // Apply CORS middleware first
@@ -66,7 +67,7 @@ io.on("connection", (socket) => {
 });
 
 // 6. SERVER START
-const PORT = process.env.PORT || 10000;
+const PORT = 10000 || process.env.PORT ;
 server.listen(PORT, () => {
   console.log(`✅ Ausdauer System Live on port ${PORT}`);
 });
