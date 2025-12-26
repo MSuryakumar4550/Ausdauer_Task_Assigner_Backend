@@ -4,6 +4,14 @@ const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const cors = require('cors');
+
+app.use(cors({
+  origin: 'https://ausdauer-task-assigner-frontend.vercel.app', // Your Vercel URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+
 // Import Routes
 const authRoutes = require("./routes/authRoutes");
 const taskRoutes = require("./routes/taskRoutes");
