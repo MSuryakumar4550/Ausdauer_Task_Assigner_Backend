@@ -1,27 +1,22 @@
+require('dotenv').config(); // 1. Initialized at Line 1 so 'db' can see the variables
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
+const db = require("./config/db"); 
+const { verifyToken, isChair } = require("./middleware/authMiddleware");
 
-// Load Environment Variables
-dotenv.config();
-
-// Initialize App
 const app = express();
 const server = http.createServer(app);
 
-// 1. ROBUST CORS CONFIGURATION
+// 2. ROBUST CORS CONFIGURATION
 const allowedOrigins = [
   "https://ausdauer-task-assigner-frontend.vercel.app",
   "http://localhost:3000"
-  
 ];
 
-// Apply CORS middleware first
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       return callback(new Error('CORS policy violation'), false);
@@ -33,12 +28,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Manual handler for Preflight OPTIONS requests
-app.options('*', cors()); 
-
 app.use(express.json());
 
-// 2. SOCKET.IO CONFIGURATION
+// 3. SOCKET.IO CONFIGURATION
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -47,12 +39,11 @@ const io = new Server(server, {
   }
 });
 
-// 3. IMPORT ROUTES
+// 4. ROUTE MAPPING
 const authRoutes = require("./routes/authRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const userRoutes = require("./routes/userRoutes");
 
-// 4. ROUTE MAPPING
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
@@ -63,11 +54,39 @@ io.on("connection", (socket) => {
   socket.on("task_action", () => {
     io.emit("refresh_data"); 
   });
+  socket.on("announcement_posted", () => {
+    io.emit("new_announcement");
+  });
   socket.on("disconnect", () => console.log("❌ User disconnected"));
 });
 
-// 6. SERVER START
-const PORT = 10000 || process.env.PORT ;
+// 6. ANNOUNCEMENT ROUTES
+// GET: Everyone can see announcements
+app.get("/api/announcements", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT *, DATE_FORMAT(created_at, '%M %d, %Y') as date FROM announcements ORDER BY created_at DESC");
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch Error:", err);
+    res.status(500).json({ error: "Failed to fetch announcements" });
+  }
+});
+
+// POST: Only Chairs can create announcements
+app.post("/api/announcements", verifyToken, isChair, async (req, res) => {
+  const { title, content, type } = req.body;
+  try {
+    await db.query("INSERT INTO announcements (title, content, type) VALUES (?, ?, ?)", [title, content, type]);
+    io.emit("new_announcement"); 
+    res.json({ message: "Announcement posted successfully!" });
+  } catch (err) {
+    console.error("Post Error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// 7. SERVER START
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`✅ Ausdauer System Live on port ${PORT}`);
 });

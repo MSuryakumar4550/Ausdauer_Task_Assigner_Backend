@@ -18,9 +18,7 @@ const verifyToken = (req, res, next) => {
 
         // STRAIGHTFORWARD DB CHECK
         db.query("SELECT is_active FROM users WHERE id = ?", [decoded.id], (dbErr, results) => {
-            // TRAP: results[0].is_active === 0 must return 403, not 401
             if (dbErr || results.length === 0 || results[0].is_active === 0) {
-                // Changing to 403 so Frontend triggers the Blocked UI
                 return res.status(403).json({ message: "Account deactivated. Access Forbidden." });
             }
             
